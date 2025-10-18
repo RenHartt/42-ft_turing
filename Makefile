@@ -1,43 +1,25 @@
-NAME      := ft_turing
-SRC_DIR   := sources
-MACHINES  := machines
+# === ft_turing — build avec toolchain OPAM ===
+NAME := ft_turing
+SRC  := sources
+ML   := $(SRC)/machine.ml $(SRC)/main.ml
 
-MLIS := \
-  $(SRC_DIR)/machine.mli \
-  $(SRC_DIR)/engine.mli  \
-  $(SRC_DIR)/tape.mli
+OPAM_BIN    := $(shell opam var bin)
+OPAM_PREFIX := $(shell opam var prefix)
 
-MLS := \
-  $(SRC_DIR)/machine.ml \
-  $(SRC_DIR)/engine.ml  \
-  $(SRC_DIR)/tape.ml    \
-  $(SRC_DIR)/main.ml
+OCAMLOPT := $(OPAM_BIN)/ocamlopt
+YOJSON_DIR := $(OPAM_PREFIX)/lib/yojson
 
-OCAMLC   := ocamlfind ocamlc
-OCAMLOPT := ocamlfind ocamlopt
-PKGS     := -package yojson
-LINKPKG  := -linkpkg
-FLAGS    := -g
+.PHONY: all clean fclean re
 
 all: $(NAME)
 
-$(NAME): $(MLIS) $(MLS)
-	@echo "Building $(NAME)..."
-	$(OCAMLOPT) $(FLAGS) $(PKGS) $(LINKPKG) -o $(NAME) $(MLS)
-	@echo "Done."
-
-byte:
-	$(OCAMLC) $(FLAGS) $(PKGS) $(LINKPKG) -o $(NAME).byte $(MLS)
-
-run: all
-	./$(NAME) --help
+$(NAME):
+	$(OCAMLOPT) -g -I $(SRC) -I $(YOJSON_DIR) yojson.cmxa $(ML) -o $(NAME)
 
 clean:
-	rm -f *.cm[iox] *.o $(SRC_DIR)/*.cm[iox] $(SRC_DIR)/*.o
+	rm -f $(SRC)/*.cm[iox] $(SRC)/*.o *.cm[iox] *.o
 
 fclean: clean
-	rm -f $(NAME) $(NAME).byte
+	rm -f $(NAME)
 
 re: fclean all
-
-.PHONY: all byte run clean fclean re

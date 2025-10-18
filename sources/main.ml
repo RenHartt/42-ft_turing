@@ -7,16 +7,22 @@ let usage_msg =
   -h, --help show this help message and exit"
 
 let error_msg =
-    "Error: invalid usage.\nUse --help for more information."
-
-let success_msg = "ft_turing executed successfully."
+  "Error: invalid usage.\nUse --help for more information."
 
 let () =
   let args = Array.to_list Sys.argv in
   match args with
   | [_; ("-h" | "--help")] ->
       print_endline usage_msg
-  | [_; _; _] ->
-      print_endline success_msg
+
+  | [_; jsonfile; input] ->
+      (try
+         let machine = Machine.load_machine jsonfile in
+         print_endline "Valid machine"
+       with
+       | Machine.InvalidMachine msg ->
+           Printf.eprintf "Invalid machine: %s\n" msg
+      )
+
   | _ ->
       print_endline error_msg
