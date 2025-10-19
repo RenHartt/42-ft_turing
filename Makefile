@@ -1,4 +1,3 @@
-# === ft_turing — build avec toolchain OPAM ===
 NAME := ft_turing
 SRC  := sources
 ML   := $(SRC)/machine.ml $(SRC)/main.ml
