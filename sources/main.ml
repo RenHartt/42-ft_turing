@@ -15,16 +15,16 @@ let () =
   | [_; ("-h" | "--help")] ->
       print_endline usage_msg
 
-  | [_; jsonfile; _input] ->
+  | [_; jsonfile; input] ->
       (try
-         let machine = Machine.load_machine jsonfile in
-         IO.print_machine_info machine
+         let m = Machine.load_machine jsonfile in
+         IO.print_machine m;
+         Engine.run m input
        with
        | Machine.InvalidMachine msg ->
-           Printf.eprintf "Invalid machine: %s\n" msg
+           Printf.eprintf "Invalid machine: %s\n%!" msg
        | exn ->
-           Printf.eprintf "Unexpected error: %s\n" (Printexc.to_string exn)
-      )
+           Printf.eprintf "Error: %s\n%!" (Printexc.to_string exn))
 
   | _ ->
       print_endline error_msg

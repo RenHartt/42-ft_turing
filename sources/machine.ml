@@ -29,88 +29,93 @@ type turing_machine = {
 
 exception InvalidMachine of string
 
-let extract_single_char field_name str =
+let one_char field str =
   if String.length str = 1 then str.[0]
-  else raise (InvalidMachine (Printf.sprintf "'%s' must be a 1-char string, got %S" field_name str))
+  else raise (InvalidMachine (Printf.sprintf "'%s' must be a 1-char string, got %S" field str))
 
-let string_in_list lst s = List.exists ((=) s) lst
-let char_in_list   lst c = List.exists ((=) c) lst
+let contains_string (xs : string list) (x : string) = List.exists ((=) x) xs
+let contains_char   (xs : char list)   (x : char)   = List.exists ((=) x) xs
 
 let load_machine (file_path : string) : turing_machine =
-  let json_data =
+  let json =
     try Yojson.Safe.from_file file_path with
-    | Sys_error e -> raise (InvalidMachine ("Cannot open file: " ^ e))
+    | Sys_error e         -> raise (InvalidMachine ("Cannot open file: " ^ e))
     | Yojson.Json_error e -> raise (InvalidMachine ("Invalid JSON: " ^ e))
   in
 
-  let machine_name  = json_data |> member "name"        |> to_string in
-  let alphabet_json = json_data |> member "alphabet"    |> to_list   |> filter_string in
-  let blank_str     = json_data |> member "blank"       |> to_string in
-  let state_list    = json_data |> member "states"      |> to_list   |> filter_string in
-  let initial_state = json_data |> member "initial"     |> to_string in
-  let final_list    = json_data |> member "finals"      |> to_list   |> filter_string in
-  let transitions   = json_data |> member "transitions" |> to_assoc  in
+  let name           = json |> member "name"        |> to_string in
+  let alphabet_raw   = json |> member "alphabet"    |> to_list   |> filter_string in
+  let blank_raw      = json |> member "blank"       |> to_string in
+  let states         = json |> member "states"      |> to_list   |> filter_string in
+  let initial_state  = json |> member "initial"     |> to_string in
+  let finals         = json |> member "finals"      |> to_list   |> filter_string in
+  let transitions_by_state = json |> member "transitions" |> to_assoc in
 
   let alphabet =
-    match alphabet_json with
-    | [] -> raise (InvalidMachine "Alphabet must be a non-empty array of 1-char strings")
-    | chars -> List.map (extract_single_char "alphabet") chars
+    match alphabet_raw with
+    | []    -> raise (InvalidMachine "Alphabet must be a non-empty array of 1-char strings")
+    | chars -> List.map (one_char "alphabet") chars
   in
-  let blank_symbol = extract_single_char "blank" blank_str in
+  let blank_symbol = one_char "blank" blank_raw in
 
-  if not (string_in_list state_list initial_state) then
+  if not (contains_string states initial_state) then
     raise (InvalidMachine (Printf.sprintf "Initial state %S not in states" initial_state));
   List.iter (fun s ->
-    if not (string_in_list state_list s) then
+    if not (contains_string states s) then
       raise (InvalidMachine (Printf.sprintf "Final state %S not in states" s))
-  ) final_list;
-  if not (char_in_list alphabet blank_symbol) then
+  ) finals;
+  if not (contains_char alphabet blank_symbol) then
     raise (InvalidMachine (Printf.sprintf "Blank symbol %C not in alphabet" blank_symbol));
 
   let transition_table =
     List.fold_left
-      (fun acc (current_state, transitions_json) ->
-         let transitions_list = to_list transitions_json in
+      (fun acc (current_state, state_rules_json) ->
+         let state_rules = to_list state_rules_json in
          List.fold_left
-           (fun acc transition_json ->
-              let read_str   = transition_json |> member "read"     |> to_string in
-              let write_str  = transition_json |> member "write"    |> to_string in
-              let next_state = transition_json |> member "to_state" |> to_string in
-              let action_str = transition_json |> member "action"   |> to_string in
+           (fun acc rule_json ->
+              let read_s   = rule_json |> member "read"     |> to_string in
+              let write_s  = rule_json |> member "write"    |> to_string in
+              let next_st  = rule_json |> member "to_state" |> to_string in
+              let action_s = rule_json |> member "action"   |> to_string in
+              let read_ch   = one_char "read" read_s   in
+              let write_ch  = one_char "write" write_s in
 
-              let read_char  = extract_single_char "read" read_str   in
-              let write_char = extract_single_char "write" write_str in
-
-              if not (char_in_list alphabet read_char)  then raise (InvalidMachine (Printf.sprintf "Read char %C not in alphabet" read_char));
-              if not (char_in_list alphabet write_char) then raise (InvalidMachine (Printf.sprintf "Write char %C not in alphabet" write_char));
-              if not (string_in_list state_list next_state) then raise (InvalidMachine (Printf.sprintf "Next state %S not in states" next_state));
+              if not (contains_char alphabet read_ch)  then
+                raise (InvalidMachine (Printf.sprintf "Read char %C not in alphabet" read_ch));
+              if not (contains_char alphabet write_ch) then
+                raise (InvalidMachine (Printf.sprintf "Write char %C not in alphabet" write_ch));
+              if not (contains_string states next_st) then
+                raise (InvalidMachine (Printf.sprintf "Next state %S not in states" next_st));
 
               let move_dir =
-                match action_str with
+                match action_s with
                 | "LEFT"  -> MoveLeft
                 | "RIGHT" -> MoveRight
-                | _ -> raise (InvalidMachine (Printf.sprintf "Invalid action %S (expected LEFT|RIGHT)" action_str))
+                | _ ->
+                    raise (InvalidMachine (Printf.sprintf "Invalid action %S (expected LEFT|RIGHT)" action_s))
               in
 
-              let key = (current_state, read_char) in
+              let key = (current_state, read_ch) in
               if TransitionMap.mem key acc then
-                raise (InvalidMachine (Printf.sprintf "Duplicate transition for state=%S read=%C" current_state read_char));
+                raise (InvalidMachine (Printf.sprintf "Duplicate transition for state=%S read=%C" current_state read_ch));
 
-              TransitionMap.add key { write_char; move_dir; next_state } acc
+              TransitionMap.add key { write_char = write_ch; move_dir; next_state = next_st } acc
            )
-           acc transitions_list
+           acc state_rules
       )
       TransitionMap.empty
-      transitions
+      transitions_by_state
   in
 
-  { name = machine_name;
+  {
+    name;
     alphabet;
     blank_symbol;
-    states = state_list;
+    states;
     initial_state;
-    final_states = final_list;
-    transition_table }
+    final_states = finals;
+    transition_table;
+  }
 
 let find_transition (machine : turing_machine) ~(state:string) ~(read:char)
   : transition_rule option =

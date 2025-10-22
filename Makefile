@@ -1,6 +1,6 @@
 NAME := ft_turing
 SRC  := sources
-ML   := $(SRC)/machine.ml $(SRC)/IO.ml $(SRC)/main.ml
+ML   := $(SRC)/machine.ml $(SRC)/tape.ml $(SRC)/IO.ml $(SRC)/engine.ml $(SRC)/main.ml
 
 BUILD_DIR := build
 BIN_DIR   := $(BUILD_DIR)/bin
