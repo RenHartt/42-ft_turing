@@ -8,11 +8,11 @@ type machine_state = {
 }
 
 let init_state (machine : Machine.turing_machine) (input_tape : string) : machine_state =
-  let tape0 = Tape.make ~input:input_tape ~blank:machine.blank_symbol in
+  let tape0 = Tape.make ~input:input_tape ~blank:machine.blank in
   { tape = tape0; head_pos = 0; state = machine.initial_state; step_count = 0 }
 
 let step_once (machine : Machine.turing_machine) (ms : machine_state) : machine_state option =
-  let current_char = Tape.read ms.tape ms.head_pos ~blank:machine.blank_symbol in
+  let current_char = Tape.read ms.tape ms.head_pos ~blank:machine.blank in
   match Machine.find_transition machine ~state:ms.state ~read:current_char with
   | None -> None
   | Some transition ->
@@ -24,7 +24,7 @@ let step_once (machine : Machine.turing_machine) (ms : machine_state) : machine_
         transition;
 
       let tape_next =
-        Tape.write ms.tape ms.head_pos transition.write_char ~blank:machine.blank_symbol
+        Tape.write ms.tape ms.head_pos transition.write_char ~blank:machine.blank
       in
       let head_next =
         match transition.move_dir with
@@ -36,14 +36,14 @@ let step_once (machine : Machine.turing_machine) (ms : machine_state) : machine_
 
 let run (machine : Machine.turing_machine) (input_tape : string) : unit =
   let rec run_loop (ms : machine_state) : machine_state =
-    if List.exists ((=) ms.state) machine.final_states then ms
+    if StrSet.mem ms.state machine.final_states then ms
     else
       match step_once machine ms with
-      | None        -> ms
+      | None -> ms
       | Some ms_next -> run_loop ms_next
   in
   let initial_ms = init_state machine input_tape in
   let final_ms   = run_loop initial_ms in
-  let halted     = List.exists ((=) final_ms.state) machine.final_states in
-  let tape_view  = Tape.to_string final_ms.tape ~blank:machine.blank_symbol in
+  let halted     = StrSet.mem final_ms.state machine.final_states in
+  let tape_view  = Tape.to_string final_ms.tape ~blank:machine.blank in
   IO.print_result ~halted ~state:final_ms.state ~steps:final_ms.step_count tape_view

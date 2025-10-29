@@ -5,21 +5,19 @@ let move_to_string = function
   | MoveLeft  -> "LEFT"
   | MoveRight -> "RIGHT"
 
-let char_list_to_string (chars : char list) : string =
+let char_list_to_string (chars : CharSet.t) : string =
   let buf = Buffer.create 32 in
   Buffer.add_char buf '[';
-  List.iteri (fun i c ->
-    if i > 0 then Buffer.add_string buf ", ";
+  CharSet.iter (fun c ->
     Buffer.add_string buf (Printf.sprintf "'%c'" c)
   ) chars;
   Buffer.add_char buf ']';
   Buffer.contents buf
 
-let string_list_to_string (strs : string list) : string =
+let string_list_to_string (strs : StrSet.t) : string =
   let buf = Buffer.create 32 in
   Buffer.add_char buf '[';
-  List.iteri (fun i s ->
-    if i > 0 then Buffer.add_string buf ", ";
+  StrSet.iter (fun s ->
     Buffer.add_string buf (Printf.sprintf "%S" s)
   ) strs;
   Buffer.add_char buf ']';
@@ -29,7 +27,7 @@ let print_machine (machine : turing_machine) : unit =
   let num_transitions = TransitionMap.cardinal machine.transition_table in
   Printf.printf "=== Machine: %s ===\n\n" machine.name;
   Printf.printf "Alphabet     : %s\n" (char_list_to_string machine.alphabet);
-  Printf.printf "Blank symbol : '%c'\n" machine.blank_symbol;
+  Printf.printf "Blank symbol : '%c'\n" machine.blank;
   Printf.printf "States       : %s\n" (string_list_to_string machine.states);
   Printf.printf "Initial      : %s\n" machine.initial_state;
   Printf.printf "Finals       : %s\n" (string_list_to_string machine.final_states);
@@ -80,7 +78,7 @@ let print_step
     ~(read_char : char)
     (transition : transition_rule)
   =
-  let tape_str = tape_to_str ~tape ~head_pos ~blank:machine.blank_symbol ~right_padding:15 in
+  let tape_str = tape_to_str ~tape ~head_pos ~blank:machine.blank ~right_padding:15 in
   Printf.printf "%s (%s, %c) -> (%s, %c, %s)\n%!"
     tape_str
     state
