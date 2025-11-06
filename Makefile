@@ -20,7 +20,7 @@ all: check_deps $(EXEC_OPT) $(EXEC_BYTE)
 
 check_deps:
 	@which opam >/dev/null || (echo "OPAM not found. Please install OPAM." && exit 1)
-	@opam list --installed yojson >/dev/null 2>&1 || (echo "Installing yojson..." && opam install -y yojson)
+	@eval "$$(opam env)" && opam list --installed yojson >/dev/null 2>&1 || (echo "Installing yojson..." && eval "$$(opam env)" && opam install -y yojson)
 
 $(EXEC_OPT): | $(BIN_DIR)
 	$(OCAMLOPT) -g -I $(SRC) -I $(YOJSON_DIR) yojson.cmxa $(ML) -o $(EXEC_OPT)

@@ -1,0 +1,30 @@
+{
+  "name": "02n",
+  "alphabet": ["0", "1", ".", "y", "n"],
+  "blank": ".",
+  "states": [
+    "even",
+    "odd",
+    "reject",
+    "HALT"
+  ],
+  "initial": "even",
+  "finals": ["HALT"],
+  "transitions": {
+    "even": [
+      { "read": "0", "to_state": "odd",  "write": "0", "action": "RIGHT" },
+      { "read": "1", "to_state": "reject", "write": "1", "action": "RIGHT" },
+      { "read": ".", "to_state": "HALT", "write": "y", "action": "LEFT" }
+    ],
+    "odd": [
+      { "read": "0", "to_state": "even", "write": "0", "action": "RIGHT" },
+      { "read": "1", "to_state": "reject", "write": "1", "action": "RIGHT" },
+      { "read": ".", "to_state": "HALT", "write": "n", "action": "LEFT" }
+    ],
+    "reject": [
+      { "read": "0", "to_state": "reject", "write": "0", "action": "RIGHT" },
+      { "read": "1", "to_state": "reject", "write": "1", "action": "RIGHT" },
+      { "read": ".", "to_state": "HALT", "write": "n", "action": "LEFT" }
+    ]
+  }
+}
